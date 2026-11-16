@@ -1,0 +1,39 @@
+﻿@page "/createUser"
+@rendermode InteractiveServer
+@inject UserService UserService
+
+<h3>Opret Bruger</h3>
+
+@if (!string.IsNullOrEmpty(message))
+{
+	<p>@message</p>
+}
+
+<CreateUserFormComponent NewUser="@newUser" OnSave="@HandleSave" />
+
+@code {
+	private CreateUserModel newUser = new();
+	private string? message;
+
+	private async Task HandleSave(CreateUserModel userToSave)
+	{
+		// try/catch så hvis databasen fejler (Blazor dag 4, slide 3)
+		try
+		{
+			bool created = await UserService.CreateNewUserAsync(userToSave);
+
+			if (created)
+			{
+				message = "Din bruger er oprettet. Du kan nu logge ind.";
+			}
+			else
+			{
+				message = "Brugernavnet er taget. Prøv et andet.";
+			}
+		}
+		catch (Exception ex)
+		{
+			message = $"Der er sket en fejl under oprettelsen: {ex.Message}";
+		}
+	}
+}

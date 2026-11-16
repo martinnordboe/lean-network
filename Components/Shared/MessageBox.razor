@@ -1,0 +1,24 @@
+﻿@implements IDisposable
+@inject MessageService MessageService
+
+@if (!string.IsNullOrEmpty(MessageService.Message))
+{
+	<div class="alert alert-info" >@MessageService.Message</div>
+}
+
+@code {
+	//Se slide 35-37 dag 4 hvis det
+	protected override void OnInitialized()
+	{
+		MessageService.MessageChanged += Refresh;
+	}
+
+	private void Refresh()
+	{
+		InvokeAsync(StateHasChanged);
+	}
+	public void Dispose()
+	{
+		MessageService.MessageChanged -= Refresh;
+	}
+}

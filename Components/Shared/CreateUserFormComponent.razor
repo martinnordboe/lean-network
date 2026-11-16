@@ -1,0 +1,31 @@
+﻿<EditForm Model="NewUser" OnValidSubmit="HandleValidSubmit">
+	@* Aktiverer valideringen fra CreateUserModel (Blazor dag 3, slide 14-15) *@
+	<DataAnnotationsValidator />
+
+	<InputText @bind-Value="NewUser.Username" placeholder="Brugernavn" />
+	<ValidationMessage For="@(() => NewUser.Username)" />
+
+	<br />
+
+	<InputText type="password" @bind-Value="NewUser.Password" placeholder="Password" />
+	<ValidationMessage For="@(() => NewUser.Password)" />
+
+	<br />
+
+	<button type="submit">Opret bruger</button>
+
+</EditForm>
+
+	@code {
+	[Parameter]
+	public CreateUserModel NewUser { get; set; } = default;
+
+	[Parameter]
+	public EventCallback<CreateUserModel> OnSave { get; set; }
+
+
+	private async Task HandleValidSubmit()
+	{
+			await OnSave.InvokeAsync(NewUser);
+	}
+}

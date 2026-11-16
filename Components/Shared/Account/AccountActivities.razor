@@ -1,0 +1,38 @@
+﻿@inject IActivityService ActivityService
+
+<div class="account-activties-container">
+    @if(activities.Count == 0)
+    {
+        <div class="account-activity-none">
+            Du er pt. ikke skrevet op til nogle aktiviteter
+        </div>
+        
+    }
+    else
+    {
+        <div class="account-activity-list">
+            <div class="account-activity-list-title">
+                Dine tilmeldte aktiviteter
+            </div>
+            <div class="account-activity-list-wrapper">
+                @foreach (Activity activity in activities)
+                {
+                    <ActivityCard Activity="activity"/>            
+                }
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public required User User { get; set; }
+
+    List<Activity> activities = new List<Activity>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        activities = await ActivityService.GetAllUserActivities(User);
+    }
+}

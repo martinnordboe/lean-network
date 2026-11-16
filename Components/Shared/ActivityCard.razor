@@ -1,0 +1,125 @@
+﻿@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IActivityService activityService
+@inject MessageService messageService
+
+<div class="aktivitet-kort">
+    <a href="/activity/@Activity.Id" class="kort-link">
+        <h3 class="kort-titel">@Activity.ActivityTitle</h3>
+
+        <p class="kort-beskrivelse">@Activity.ActivityInfo</p>
+
+        <div class="kort-info">
+            <span class="kort-deltagere">👥 Deltagere: @participantCount/@Activity.MaxParticipant</span>
+            <span class="kort-dato">📅 @Activity.ActivityStartTime.ToString("dd-MM-yyyy 'kl.' HH:mm")</span>
+            <span>📍 @Activity.Address</span>
+        </div>
+    </a>
+
+    <button class="tilmeld-knap @(isSignedUp ? "tilmeldt" : "")"
+            @onclick="ToggleSignUp"
+            disabled="@(IsFull && !isSignedUp)">
+        @ButtonText
+    </button>
+
+    @if (message != null)
+    {
+        <p class="kort-besked">@message</p>
+    }
+</div>
+
+@code {
+    // Kortet får sin aktivitet ind udefra, fra den side der bruger det
+    [Parameter]
+    public Activity Activity { get; set; } = new();
+
+    // Oplysninger om den bruger, der er logget ind, oplysninger synes ned fra toppen af
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private int? userId;                    // null betyder, at ingen er logget ind
+    private bool isSignedUp = false;  // Starter som false, fordi man ikke er tilmeldt fra start
+    private int participantCount = 0;
+    private string? message;          // Besked under knappen, fx hvis aktiviteten er fuld
+
+    // Aktiviteten er fuld, når antal tilmeldte har nået maks
+    private bool IsFull => participantCount >= Activity.MaxParticipant;
+
+    // Teksten på knappen afhænger af tilstanden
+    private string ButtonText
+    {
+        get
+        {
+            if (isSignedUp) return "Frameld";
+            if (IsFull) return "Fuld";
+            return "Tilmeld";
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        userId = await GetUserIdAsync();
+        participantCount = await activityService.GetParticipantCountAsync(Activity.Id);
+
+        if (userId != null)
+        {
+            isSignedUp = await activityService.IsSignedUpAsync(Activity.Id, userId.Value);
+        }
+    }
+
+    private async Task ToggleSignUp()
+    {
+        message = null;
+
+        // TODO: Knappen skal skjules for brugere, der ikke er logget ind (autorisation/Mathias)
+        if (userId == null)
+        {
+            message = "Du skal være logget ind for at tilmelde dig.";
+            return;
+        }
+
+        if (isSignedUp)
+        {
+            await activityService.SignOffAsync(Activity.Id, userId.Value);
+            isSignedUp = false;
+            messageService.ShowMessage($"Du er frameldt {Activity.ActivityTitle}");
+        }
+        else
+        {
+            bool success = await activityService.SignUpAsync(Activity.Id, userId.Value, Activity.MaxParticipant);
+
+            if (success)
+            {
+                isSignedUp = true;
+                messageService.ShowMessage($"Du er tilmeldt {Activity.ActivityTitle}");
+
+            }
+            else
+            {
+                message = "Aktiviteten er desværre fuld.";
+            }
+        }
+
+        // Hent det nye antal, så tallet på kortet passer
+        participantCount = await activityService.GetParticipantCountAsync(Activity.Id);
+    }
+
+    // Finder IDet på den bruger, der er logget ind, eller null hvis ingen er logget ind (Mathias)
+    private async Task<int?> GetUserIdAsync()
+    {
+        if (AuthState == null)
+        {
+            return null;
+        }
+
+        AuthenticationState state = await AuthState;
+        string? idText = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(idText, out int id))
+        {
+            return id;
+        }
+
+        return null;
+    }
+}

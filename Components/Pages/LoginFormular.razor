@@ -1,0 +1,14 @@
+﻿@page "/loginForm"
+@rendermode InteractiveServer
+
+<h3>Login</h3>
+
+<form method="post" action="/account/login" >
+	<AntiforgeryToken />
+	<input name="username" type="text" required />
+	<input name="password" type="password" required />
+	<button type="submit">Login</button>
+</form>
+
+@code {
+}

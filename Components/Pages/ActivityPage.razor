@@ -1,0 +1,80 @@
+﻿@page "/activity/{Id:int}"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+@inject IActivityService activityService
+@using System.Security.Claims
+
+@if(Activity is not null)
+{
+    <h3>Activity</h3>
+
+    <h3 class="kort-titel">@Activity.ActivityTitle</h3>
+
+    <p class="kort-beskrivelse">@Activity.ActivityInfo</p>
+
+    <div class="kort-deltagere">
+        👥 Maks: @Activity.MaxParticipant deltagere  
+    </div>
+
+    <div class="kort-info">
+        <span>📅 @Activity.ActivityStartTime.ToString("dd-MM-yyyy 'kl.' HH:mm")</span>
+        <span>📍 @Activity.Address</span>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            @if (IsOwner(context.User))
+            {
+                <div class="container-button">
+                    <button type="button" class="edit-delete-knap" @onclick="() => EditActivity(Activity.Id)"> Rediger aktivitet </button>
+                </div>
+            }
+
+            @if (IsOwner(context.User) || context.User.IsInRole("Admin"))
+            {
+                <br />
+                <div class="container-button">
+                    <button type="button" class="edit-delete-knap" @onclick="() => DeleteActivity(Activity.Id)"> Slet aktivitet </button>
+                </div>
+            }
+        </Authorized>
+    </AuthorizeView>
+    
+}
+
+
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+
+    public game_match.Models.Activity? Activity { get; set; } 
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Activity = await activityService.GetActivityById(Id);
+    }
+
+    public async Task DeleteActivity(int id)
+    {
+        await activityService.RemoveActivityAsync(id);
+        NavigationManager.NavigateTo("/"); 
+
+    }
+
+    public async Task EditActivity(int id)
+    {
+        
+        NavigationManager.NavigateTo($"/ActivityFormPage/{id}"); 
+
+    }
+
+    private bool IsOwner(ClaimsPrincipal user)
+    {
+        string? userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return Activity != null && userId == Activity.OwnerId.ToString();
+    }
+
+}

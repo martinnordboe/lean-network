@@ -1,0 +1,17 @@
+﻿@using System.Security.Claims;
+
+@* <AuthorizeView>
+    <Authorized>
+        @if (OwnerUsername == User.FindFirstValue(ClaimTypes.NameIdentifier))
+        {
+            @AuthorizedContent
+        }
+</AuthorizeView> *@
+
+    @code {
+    [Parameter]
+    public string OwnerUsername { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment? AuthorizedContent { get; set; }
+}

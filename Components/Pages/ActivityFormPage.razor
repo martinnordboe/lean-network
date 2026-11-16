@@ -1,0 +1,60 @@
+﻿@page "/ActivityFormPage"
+@page "/ActivityFormPage/{Id:int?}"
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+@inject IActivityService ActivityService
+@inject AuthenticationStateProvider AuthStateProvider
+@using System.Security.Claims
+@attribute [Authorize]
+
+@if (activity != null)
+{
+    <ActivityFormComponent Activity="@activity" OnSave="@HandleValidSubmitToDB"/>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private Activity? activity;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            activity = await ActivityService.GetActivityById(Id.Value);
+        }
+        else
+        {
+            AuthenticationState authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            ClaimsPrincipal user = authState.User;
+            string? userIdString = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(userIdString, out int userId))
+            {
+                activity = ActivityService.CreateNewActivity(userId);
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/Error");
+            }
+        }
+    }
+
+    private async Task HandleValidSubmitToDB(Activity activityToSave)
+    {
+
+        if(Id.HasValue)
+        {
+            await ActivityService.UpdateToRepoAsync(activityToSave);
+        }
+         else
+        {
+        await ActivityService.AddToRepoAsync(activityToSave);
+            
+         }
+
+     NavigationManager.NavigateTo("/"); 
+    }
+}

@@ -1,0 +1,136 @@
+﻿@using System.Diagnostics;
+@using game_match.Models;
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserService UserService
+
+@if (Activity != null)
+{
+    <div class="activityForm">
+        <div class="inputSeparation">
+        <h1>@(Activity?.Id > 0 ? "Rediger aktivitet" : "Opret en aktivitet")</h1>
+        </div>
+
+    <div class="activityCard">
+    <EditForm Model="Activity" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="HandleInvalidSubmit">
+
+        <DataAnnotationsValidator/>
+     
+        @if(!string.IsNullOrEmpty(errorMessage))
+        {
+                       
+            <div class="text-danger mb-3">@errorMessage</div>
+        }
+
+        <div class="inputSeparation">
+        <p>Titel på din aktivitet</p>
+        <InputText @bind-Value="Activity.ActivityTitle" placeholder="Titel på din aktivitet"/>
+        <ValidationMessage For="@(() => Activity.ActivityTitle)" />
+        </div>
+
+        <br/>
+
+        <div class="inputSeparation">
+        <p>Skriv hvad din aktivitet går ud på</p>
+        <InputText @bind-Value="Activity.ActivityInfo" placeholder="Info om din aktivitet"/>
+        <ValidationMessage For="@(() => Activity.ActivityInfo)" />
+        </div>
+
+        <br/>
+
+        <div class="inputSeparation">
+        <p>Hvor foregår din aktivitet?</p>
+        <InputText @bind-Value="Activity.Address" placeholder="Stedet for din aktivitet"/>
+        <ValidationMessage For="@(() => Activity.Address)" />
+        </div>
+
+        <br/>
+
+        <div class="inputSeparation">
+        <p>Hvor mange kan deltage i aktiviteten?</p>
+        <InputNumber @bind-Value="Activity.MaxParticipant" placeholder="Maks. antal tilmeldte" />
+        <ValidationMessage For="@(() => Activity.MaxParticipant)" />
+        </div>
+
+        <br/>
+
+        <div class="inputSeparation">
+        <p>Tidspunktet for aktiviteten</p>
+        <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="Activity.ActivityStartTime" placeholder="Tidspunktet for aktivitet" />
+      
+
+    
+
+        </div>
+
+        <div class="buttonContainer"> 
+        <button type="submit" class="submitButton" disabled="@submitting"> @(Activity?.Id > 0 ? "Gem ændringer" : "Opret aktivitet" )</button>
+        </div>
+
+    </EditForm>
+    </div>
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public game_match.Models.Activity? Activity { get; set; }
+
+    [Parameter]
+    public EventCallback<game_match.Models.Activity> OnSave { get; set; }
+
+    private string? errorMessage;
+    private bool submitting = false;
+
+    User? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        string? username = authState.User.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(username))
+        {
+            user = await UserService.GetUserByUsername(username);
+        }
+    }
+
+
+    private async Task HandleValidSubmit()
+    {
+        if(Activity.ActivityStartTime < DateTime.Now)
+        {
+            errorMessage = "Du kan ikke vælge et tidspunkt, der har været";
+            return;
+        }
+
+        try
+        {
+            errorMessage = null;
+            submitting = true;
+
+            if (Activity != null)
+            {
+                await OnSave.InvokeAsync(Activity);
+            }
+        }
+        catch(Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex);
+            errorMessage = "Der er sket en fejl under oprettelsen";
+            
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        System.Diagnostics.Debug.WriteLine("Ret felterne nedenfor, før aktiviteten kan oprettes.");
+    }
+}

@@ -1,0 +1,45 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject IActivityService service
+
+<div class="brugerbar">
+    <div class="brugerbar-menu">
+        <a href="/">Home</a>
+        <AuthorizeView>
+            <NotAuthorized>
+                <a href="/LoginForm">Login</a>
+                <a href="/createUser">Opret bruger</a>
+            </NotAuthorized>
+        </AuthorizeView>
+        <a href="/ActivityFormPage">Activity Form</a>
+    </div>
+    <div class="bruger-box">
+        <div class="bruger">
+            <span class="bruger-ikon">👤</span>
+            <AuthorizeView>
+                <Authorized>
+                    <p>@_count</p>
+                    <a href="/account" class="brugernavn">Account</a>
+                    <form method="post" action="/account/logout">
+                        <AntiforgeryToken />
+                        <button type="submit">Log out</button>
+                    </form>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
+</div>
+
+@code {
+    // TODO: Hent den aktuelle bruger fra login-servicen, når den er klar til det
+    // WHAT: Simpel brugerbar bjælke der fremviser
+    private string brugerNavn = "ikke logget ind";
+
+    private int _count = default;
+
+    protected override void OnInitialized()
+    {
+        _count = service.ParticipationCount;
+    }
+
+
+}

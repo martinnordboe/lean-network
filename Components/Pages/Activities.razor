@@ -1,0 +1,57 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject IActivityService activityService
+
+<PageTitle>GameMatch - Aktiviteter</PageTitle>
+
+<div class="aktiviteter-side">
+    <div class="overskrift-linje">
+        <h2 class="overskrift">Aktiviteter</h2>
+        <input type="text" class="soegefelt" placeholder="Søg efter aktivitet..." 
+               @oninput="OnSearchTextChanged" />
+    </div>
+
+    <MessageBox/>
+
+    @if (activities.Count == 0)
+    {
+        <p class="Ingen-aktiviteter">Ingen aktivitets opslag tilgængelig</p>
+    }
+    else if (filteredActivities.Count == 0)
+    {
+        <p class="Ingen-aktiviteter"> Ingen aktiviteter matcher "@searchText"</p>
+    }
+    else
+    {
+        <div class="kort-gitter">
+            @foreach (var activity in filteredActivities)
+            {
+                <ActivityCard Activity="activity" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Activity> activities = new();
+    private List<Activity> filteredActivities = new(); //Listen der vises
+    private string searchText = ""; //Søgeinput
+
+    // protected override async void OnInitialized()
+    protected override async Task OnInitializedAsync()
+    {
+        //Her kalder vi service for at få listen 
+        activities = await activityService.GetAllActivitiesAsync();
+        filteredActivities = activities;
+
+    }
+    //Kaldes hver gang brugeren skriver i søge feltet. Se evt. Blazorundervisning dag 3 slide 37.
+    private void OnSearchTextChanged(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        filteredActivities = activities
+            .Where(a => a.ActivityTitle.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                     || a.ActivityInfo.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+}

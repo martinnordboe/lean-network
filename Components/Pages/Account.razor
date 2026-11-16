@@ -1,0 +1,45 @@
+@page "/account"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using game_match.Components.Shared.Account
+@inject UserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize]
+
+<AuthorizeView Context="authState">
+    <Authorized>
+        <div id="accountpage">
+            
+            @if (user is null)
+            {
+                <p>Indlæser brugeroplysninger...</p>
+            }
+            else
+            {
+                <AccountInformation User="user"/>
+                <AccountPasswordForm User="user" />
+                <AccountActivities User="user" />
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <p>Du er ikke autoriseret til at tilgå denne side - log ind for at se dine oplysninger</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    User? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+        string? username = authState.User.Identity?.Name;
+
+        if (!string.IsNullOrEmpty(username))
+        {
+            user = await UserService.GetUserByUsername(username);
+        }
+    }
+}

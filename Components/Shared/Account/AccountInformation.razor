@@ -1,0 +1,15 @@
+﻿<div class="account-information-container">
+    <div class="account-info-box">
+        <div class="account-info-box-item">Brugernavn</div>
+        <div class="account-info-box-item">@User.Username</div>
+    </div>
+    <div class="account-info-box">
+        <div class="account-info-box-item">Bruger-ID</div>
+        <div class="account-info-box-item">@User.Id</div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public required User User { get; set; }
+}
