@@ -1,4 +1,3 @@
 <Solution>
-  <Project Path="../game-match-api/game-match-api.csproj" Id="3a037c12-5a51-4021-8e41-4566ad95437f" />
   <Project Path="game-match.csproj" />
 </Solution>
