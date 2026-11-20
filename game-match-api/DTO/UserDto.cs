@@ -1,4 +1,4 @@
-﻿namespace game_match_api.DTO
+﻿namespace game_match_api.dto
 {
     public class UserDto
     {
