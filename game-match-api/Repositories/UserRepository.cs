@@ -1,4 +1,4 @@
-﻿using game_match_api.DTO;
+﻿using game_match_api.dto;
 using game_match_api.Models;
 using game_match_api.tools;
 using MySqlConnector;
