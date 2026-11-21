@@ -1,6 +1,6 @@
 ﻿@page "/"
 @rendermode InteractiveServer
-@inject IActivityService activityService
+@inject ActivityApiClient ActivityApi
 
 <PageTitle>GameMatch - Aktiviteter</PageTitle>
 
@@ -40,8 +40,8 @@
     // protected override async void OnInitialized()
     protected override async Task OnInitializedAsync()
     {
-        //Her kalder vi service for at få listen 
-        activities = await activityService.GetAllActivitiesAsync();
+        //Her kalder vi api for at få listen 
+        activities = await ActivityApi.GetAllAsync();
         filteredActivities = activities;
 
     }
