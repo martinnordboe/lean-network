@@ -8,6 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove=".env" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include=".env">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageReference Include="MySqlConnector" Version="2.6.2" />
   </ItemGroup>

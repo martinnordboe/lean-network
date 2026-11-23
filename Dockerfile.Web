@@ -1,0 +1,50 @@
+# .NET SDK TIL AT BUILD PROJEKT !
+
+# Officielt Microsoft Docker image til .NET SDK
+# Så vi kan build vores projekt med .NET 10
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# Vi angiver den mappe der skal være arbejdsmappen
+# i det .NET image, hvor vores eget projekt skal kopieres ind 
+WORKDIR /source
+# Kopierer konfiguration af NuGet pakker (hvor der skal hentes fra)
+# Ved ikke om det påvirker os, men det var med i Mikael's
+COPY NuGet.Config ./NuGet.Config
+# Vi kopierer vores projekt ind i .NET SDK image source mappen for at build
+COPY game-match-web/ ./game-match-web/
+
+# Vi gendanner projektet og installerer NuGet pakker i projektet i det .NET 10 Image
+# og beder den bruge NuGet.Config som dokumentation for hvor pakker bl.a.
+# skal hentes fra
+# game-match-web/game-match.csproj referrer til Blazor projektfilen 
+# i mappen som indeholder projektdetaljer
+RUN dotnet restore game-match-web/game-match.csproj \
+    --configfile NuGet.Config
+
+# Vi builder et release build med publish
+RUN dotnet publish game-match-web/game-match.csproj \
+    -c Release -o /publish --no-restore
+
+
+
+# .NET RUNTIME MILJØ TIL AT KØRE PÅ SERVER STARTER HER!
+
+# Officielt .NET 10 image af .NET 10 runtime miljø til 
+# at køre vores projekt i !!
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# arbejdsmappen som vores projekt skal være i, i runtime image 
+# - vi kopierer til /app senere
+WORKDIR /app
+# Dobbelt konfekt, da Mikaels Docker Compose overwriter med URL, men er med for dokumentation
+ENV ASPNETCORE_HTTP_PORTS=8080
+# Også dobbelt konfekt og er med som dokumentation
+# igen fordi ASPNETCORE_URLS i environment i compose overwriter Dockerfile
+EXPOSE 8080
+EXPOSE 8443
+
+# Vi kopierer her vores færdige release build fra .NET SDK image
+# til /app mappen i vores .NET Runtime image, sat på linje 33 og linje 36
+COPY --from=build /publish/ ./
+USER $APP_UID
+# Vi bruger DLL fra projektets build, som kan ses ved at kigge i projektets
+# "bin" mappe
+ENTRYPOINT ["dotnet", "game-match.dll"]
