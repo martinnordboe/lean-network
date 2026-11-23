@@ -5,3 +5,16 @@ GET {{game_match_api_HostAddress}}/api/activities
 Accept: application/json
 
 ###
+
+//Hent en aktivitet der ikke findes
+GET {{game_match_api_HostAddress}}/api/activities/49
+Accept: application/json
+
+###
+
+//Hent en aktivitet der eksisterer
+GET {{game_match_api_HostAddress}}/api/activities/49
+Accept: application/json
+
+###
+
