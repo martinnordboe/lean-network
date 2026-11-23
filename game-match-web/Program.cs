@@ -23,6 +23,14 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<MessageService>();
+builder.Services.AddHttpClient("Activities", http =>
+{
+    var url = builder.Configuration["ActivitiesApi:BaseUrl"]
+    ?? throw new InvalidOperationException("ActivitiesApi:BaseUrl mangler.");
+    http.BaseAddress = new Uri(url);
+    http.Timeout = TimeSpan.FromSeconds(5);
+});
+builder.Services.AddScoped<ActivityApiClient>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
     {
         options.LoginPath = "/loginForm";

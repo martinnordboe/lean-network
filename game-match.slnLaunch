@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "Both Web and Api",
+    "Projects": [
+      {
+        "Path": "game-match-api\\game-match-api.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "game-match-web\\game-match.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      }
+    ]
+  }
+]
