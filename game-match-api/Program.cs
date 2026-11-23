@@ -33,4 +33,21 @@ app.MapGet("/api/activities", async (IActivityService activityService) =>
     return Results.Ok(activities);
 });
 
+app.MapGet("/api/activities/{id:int}", async (int id, IActivityService activityService) =>
+{
+    try
+    {
+        Activity activity = await activityService.GetActivityById(id);
+        return Results.Ok(activity);
+    }
+    catch (Exception ex)
+    {
+        if (ex.Message == "Activity not found")
+        {
+            return Results.NotFound();
+        }
+        throw;
+    }
+});
+
 app.Run();
