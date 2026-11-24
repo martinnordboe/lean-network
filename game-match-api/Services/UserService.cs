@@ -1,7 +1,9 @@
 ﻿using game_match_api.dto;
 using game_match_api.Models;
 using game_match_api.Repositories;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace game_match_api.Services
 {
@@ -140,5 +142,23 @@ namespace game_match_api.Services
 
             await repo.UpdatePassword(userId, hashedPassword);
         }
-    }
+		public async Task<ClaimsPrincipal?> Authenticate(string? name, string? password)
+		{
+			if (name is null || password is null)
+			{
+				return null;
+			}
+
+			User? matched = await ValidateCredentials(name, password);
+
+			return matched is null ? null : new ClaimsPrincipal(new ClaimsIdentity(
+				new[]
+				{
+			new Claim(ClaimTypes.NameIdentifier, matched.Id.ToString()),
+			new Claim(ClaimTypes.Name, matched.Username),
+			new Claim(ClaimTypes.Role, matched.Role)
+				},
+				BearerTokenDefaults.AuthenticationScheme));
+		}
+	}
 }

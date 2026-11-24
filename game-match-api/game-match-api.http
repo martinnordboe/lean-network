@@ -7,7 +7,7 @@ Accept: application/json
 ###
 
 //Hent en aktivitet der ikke findes
-GET {{game_match_api_HostAddress}}/api/activities/49
+GET {{game_match_api_HostAddress}}/api/activities/999999
 Accept: application/json
 
 ###
@@ -18,3 +18,18 @@ Accept: application/json
 
 ###
 
+//Forkert login: forvent 401
+POST {{game_match_api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{ "username": "findesikke", "password": "forkert" }
+
+###
+
+//Manglende kodeord: forvent 401
+POST {{game_match_api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{ "username": "findesikke" }
+
+###

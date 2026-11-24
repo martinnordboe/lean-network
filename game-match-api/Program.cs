@@ -1,7 +1,10 @@
+using game_match_api.DTO;
 using game_match_api.Models;
 using game_match_api.Repositories;
 using game_match_api.Services;
 using game_match_api.tools;
+
+using Microsoft.AspNetCore.Authentication.BearerToken;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +15,11 @@ builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddAuthentication(BearerTokenDefaults.AuthenticationScheme)
+	.AddBearerToken(options =>
+	{
+		options.BearerTokenExpiration = TimeSpan.FromMinutes(15);
+	});
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -24,7 +31,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 
 //Endpoints
 app.MapGet("/api/activities", async (IActivityService activityService) =>
@@ -48,6 +55,14 @@ app.MapGet("/api/activities/{id:int}", async (int id, IActivityService activityS
         }
         throw;
     }
+});
+
+app.MapPost("/auth/login", async Task<IResult> (LoginInput input, UserService userService) =>
+{
+	var principal = await userService.Authenticate(input.Username, input.Password);
+	return principal is null
+		? Results.Problem(statusCode: 401, title: "Brugernavn eller adgangskode er forkert.")
+		: Results.SignIn(principal, authenticationScheme: BearerTokenDefaults.AuthenticationScheme);
 });
 
 app.Run();
