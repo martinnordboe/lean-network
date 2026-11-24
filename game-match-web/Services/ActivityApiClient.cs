@@ -23,5 +23,12 @@ namespace game_match.Services
             Activity? activity = await response.Content.ReadFromJsonAsync<Activity>();
             return activity ?? throw new JsonException("Api returnerede null");
         }
+
+        public async Task DeleteByIdAsync(int id)
+        {
+            using HttpClient http = factory.CreateClient("Activities");
+            using HttpResponseMessage response = await http.DeleteAsync($"api/activities/{id}");
+            response.EnsureSuccessStatusCode();
+        }
     }
 }
