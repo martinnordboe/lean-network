@@ -30,5 +30,12 @@ namespace game_match.Services
             using HttpResponseMessage response = await http.DeleteAsync($"api/activities/{id}");
             response.EnsureSuccessStatusCode();
         }
+
+        public async Task EditByIdAsync(int id, Activity activity)
+        {
+            using HttpClient http = factory.CreateClient("Activities");
+            using HttpResponseMessage response = await http.PutAsJsonAsync($"api/activities/{id}", activity);
+            response.EnsureSuccessStatusCode();
+        }
     }
 }

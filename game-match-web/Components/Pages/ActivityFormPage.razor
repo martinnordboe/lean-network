@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
 @inject IActivityService ActivityService
+@inject ActivityApiClient ActivityApi
 @inject AuthenticationStateProvider AuthStateProvider
 @using System.Security.Claims
 @attribute [Authorize]
@@ -10,21 +11,43 @@
 @if (activity != null)
 {
     <ActivityFormComponent Activity="@activity" OnSave="@HandleValidSubmitToDB"/>
+
 }
+      @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
+
+
 
 @code {
-    [Parameter]
-    public int? Id { get; set; }
-
+        [Parameter]
+        public int? Id { get; set; }
+    private string? errorMessage = "";
     private Activity? activity;
 
 
     protected override async Task OnInitializedAsync()
     {
+        errorMessage = null;
         if (Id.HasValue)
         {
-            activity = await ActivityService.GetActivityById(Id.Value);
+            try
+            {
+                activity = await ActivityApi.GetByIdAsync(Id.Value);
+            }
+                    catch (HttpRequestException ex)
+        {
+            if(ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                errorMessage = "Aktiviteten blev ikke fundet";
+            }
+            else
+            {
+                errorMessage = "Kunne ikke hente aktiviteten til redigering.";
+            }
         }
+    }
         else
         {
             AuthenticationState authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -44,17 +67,31 @@
 
     private async Task HandleValidSubmitToDB(Activity activityToSave)
     {
+        errorMessage = null;
 
-        if(Id.HasValue)
+        try
         {
-            await ActivityService.UpdateToRepoAsync(activityToSave);
+            if(Id.HasValue)
+            {
+                await ActivityApi.EditByIdAsync(Id.Value, activityToSave);
+            }
+            else
+            {
+                await ActivityService.AddToRepoAsync(activityToSave);   
+            }
+
+            NavigationManager.NavigateTo("/"); 
         }
-         else
+        catch (HttpRequestException ex)
         {
-        await ActivityService.AddToRepoAsync(activityToSave);
-            
-         }
-
-     NavigationManager.NavigateTo("/"); 
+            if(ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                errorMessage = "Aktiviteten blev ikke fundet";
+            }
+            else
+            {
+                errorMessage = "Der opstod en fejl under gemning af aktiviteten.";
+            }
+        }
     }
 }
