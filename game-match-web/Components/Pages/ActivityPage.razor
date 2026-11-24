@@ -7,14 +7,19 @@
 @using System.Security.Claims
 @using System.Net
 
-@if (!string.IsNullOrEmpty(errorMessage))
+@if (!string.IsNullOrEmpty(errorMessage) && Activity is null)
 {
     <p class="text-danger">@errorMessage</p>    
 }
 
-else if(Activity is not null)
+else if (Activity is not null)
 {
     <h3>Activity</h3>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
 
     <h3 class="kort-titel">@Activity.ActivityTitle</h3>
 
@@ -47,7 +52,7 @@ else if(Activity is not null)
             }
         </Authorized>
     </AuthorizeView>
-    
+
 }
 
 
@@ -59,7 +64,7 @@ else if(Activity is not null)
 
     public game_match.Models.Activity? Activity { get; set; }
 
-    private string errorMessage = "";
+    private string? errorMessage = "";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -90,8 +95,29 @@ else if(Activity is not null)
 
     public async Task DeleteActivity(int id)
     {
-        await activityService.RemoveActivityAsync(id);
-        NavigationManager.NavigateTo("/"); 
+        errorMessage = "";
+
+        try
+        {
+            await ActivityApi.DeleteByIdAsync(id);
+            NavigationManager.NavigateTo("/"); 
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                errorMessage = $"Aktiviteten med id {id} blev ikke fundet";
+            }
+            else if (ex.StatusCode is null)
+            {
+                errorMessage = "Kan ikke kontakte Api'et";
+            }
+            else
+            {
+                errorMessage = "Der opstod en fejl under sletningen af aktiviteten";
+            }
+        }
+
 
     }
 
