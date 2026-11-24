@@ -50,4 +50,23 @@ app.MapGet("/api/activities/{id:int}", async (int id, IActivityService activityS
     }
 });
 
+app.MapDelete("/api/activities/{id:int}", async (int id, IActivityService activityService) =>
+    {
+        try
+        {
+            await activityService.RemoveActivityAsync(id);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message == "Activity not found")
+            {
+                return Results.NotFound();
+            }
+            throw;
+        }
+
+
+    });
+
 app.Run();
