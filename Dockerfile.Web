@@ -44,6 +44,8 @@ EXPOSE 8443
 # Vi kopierer her vores færdige release build fra .NET SDK image
 # til /app mappen i vores .NET Runtime image, sat på linje 33 og linje 36
 COPY --from=build /publish/ ./
+# Gør nøglemappen skrivbar for den bruger, appen kører som.
+RUN install -d -m 700 -o "$APP_UID" /keys
 USER $APP_UID
 # Vi bruger DLL fra projektets build, som kan ses ved at kigge i projektets
 # "bin" mappe

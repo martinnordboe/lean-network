@@ -11,6 +11,7 @@ services:
       # Port mapping til port 5443
       - "127.0.0.1:5443:8443"
     environment:
+      Authentication__SharedKeyRingPath: /keys
       # Overrider Dockerfile til at Web API kører på port 8443 ved secure og 8080 ved unsecure
       # inde i containeren - mappes derefter ovenover til port 5443 eksternt
       # fra containerens interne 8443 port
@@ -21,6 +22,7 @@ services:
     volumes:
       # Det her bruges til at mount certifikatet til HTTPS på Linux
       - ./.certs:/https:ro
+      - data-protection-keys:/keys
   # Navnet på den anden service vi laver "web" og er til Blazor
   web:
     build:
@@ -32,6 +34,7 @@ services:
       # Port mapping til port 5143
       - "127.0.0.1:5143:8443"
     environment:
+      Authentication__SharedKeyRingPath: /keys
       # Overrider Dockerfile til at Blazor kører på port 8443 ved secure og 8080 ved unsecure
       # inde i containeren - mappes derefter ovenover til port 5143 eksternt
       # fra containerens interne 8443 port
@@ -41,6 +44,10 @@ services:
     volumes:
       # Det her bruges til at mount certifikatet til HTTPS på Linux
       - ./.certs:/https:ro
+      - data-protection-keys:/keys
     depends_on:
       # sætter dependency til "api" servicen ovenover
       - api
+
+volumes:
+  data-protection-keys:

@@ -45,8 +45,8 @@ EXPOSE 8443
 # til /app mappen i vores .NET Runtime image, sat på linje 33 og linje 36
 COPY --from=build /publish/ ./
 
-# Et nyt volume overtager mappens ejer. API'et skal kunne skrive som app-brugeren.
-#RUN mkdir -p /app/data && chown "$APP_UID:$APP_UID" /app/data
+# Gør nøglemappen skrivbar for den bruger, appen kører som.
+RUN install -d -m 700 -o "$APP_UID" /keys
 USER $APP_UID
 # Vi bruger DLL fra projektets build, som kan ses ved at kigge i projektets
 # "bin" mappe
