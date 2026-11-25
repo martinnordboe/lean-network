@@ -13,6 +13,7 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<UserService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddValidation(); //Gør det samme som BookRules fra underivsningen gjorde. Tjekker [Required] osv på Activity automatisk.
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -87,6 +88,12 @@ app.MapPut("/api/activities/{id:int}", async (int id, Activity activity, IActivi
         throw;
     }
 
+});
+
+app.MapPost("api/activities", async (Activity input, IActivityService activityService) =>
+    {
+    await activityService.AddToRepoAsync(input);
+    return Results.Created($"/api/activities/{input.Id}", input); //201
 });
 
 app.Run();

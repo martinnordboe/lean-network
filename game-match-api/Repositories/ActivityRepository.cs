@@ -55,7 +55,9 @@ namespace game_match_api.Repositories
             command.Parameters.AddWithValue("@ownerId", activity.OwnerId);
 
             await command.ExecuteNonQueryAsync();
-        }
+
+			activity.Id = (int)command.LastInsertedId;
+		}
 
         public async Task<List<Activity>> GetAllUserActivities(int userId)
         {
