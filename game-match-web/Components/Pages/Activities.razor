@@ -13,7 +13,12 @@
 
     <MessageBox/>
 
-    @if (activities.Count == 0)
+    @if (loadError != "")
+    {
+        <p role="alert" class="text-danger">@loadError</p>
+        <button @onclick="OnInitializedAsync">Hent igen</button>
+    }
+    else if (activities.Count == 0)
     {
         <p class="Ingen-aktiviteter">Ingen aktivitets opslag tilgængelig</p>
     }
@@ -36,13 +41,25 @@
     private List<Activity> activities = new();
     private List<Activity> filteredActivities = new(); //Listen der vises
     private string searchText = ""; //Søgeinput
-
+    private string loadError = "";
     // protected override async void OnInitialized()
     protected override async Task OnInitializedAsync()
     {
+        loadError = "";
         //Her kalder vi api for at få listen 
-        activities = await ActivityApi.GetAllAsync();
-        filteredActivities = activities;
+        try
+        {
+            activities = await ActivityApi.GetAllAsync();
+            filteredActivities = activities;
+        }
+        catch (HttpRequestException)
+        {
+            loadError = "Kan ikke hente fra API. Prøv igen.";
+        }
+        catch (OperationCanceledException)
+        {
+            loadError = "Apiet svarede ikke i tide";
+        }
 
     }
     //Kaldes hver gang brugeren skriver i søge feltet. Se evt. Blazorundervisning dag 3 slide 37.
