@@ -69,4 +69,24 @@ app.MapDelete("/api/activities/{id:int}", async (int id, IActivityService activi
 
     });
 
+app.MapPut("/api/activities/{id:int}", async (int id, Activity activity, IActivityService activityService) =>
+{
+
+    try
+    {
+        activity.Id = id;
+        await activityService.UpdateToRepoAsync(activity);
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        if (ex.Message == "Activity not found")
+        {
+            return Results.NotFound();
+        }
+        throw;
+    }
+
+});
+
 app.Run();

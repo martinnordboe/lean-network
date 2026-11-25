@@ -78,6 +78,7 @@ namespace game_match_api.Services
 
         public async Task UpdateToRepoAsync(Activity activity)
         {
+            await GetActivityById(activity.Id);
             await repo.UpdateActivityAsync(activity);
         }
 
