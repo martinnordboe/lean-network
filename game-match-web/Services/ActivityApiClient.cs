@@ -37,5 +37,12 @@ namespace game_match.Services
             using HttpResponseMessage response = await http.PutAsJsonAsync($"api/activities/{id}", activity);
             response.EnsureSuccessStatusCode();
         }
+
+        public async Task AddAsync(Activity activity)
+        {
+            using HttpClient http = factory.CreateClient("Activities");
+            using HttpResponseMessage response = await http.PostAsJsonAsync("api/activities", activity);
+            response.EnsureSuccessStatusCode();
+        }
     }
 }
