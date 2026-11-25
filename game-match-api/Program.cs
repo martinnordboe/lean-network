@@ -137,44 +137,49 @@ app.MapGet("/api/activities/{id:int}", async (int id, IActivityService activityS
 	}
 });
 
-app.MapDelete("/api/activities/{id:int}", async (int id, IActivityService activityService) =>
-	{
-		try
-		{
-			await activityService.RemoveActivityAsync(id);
-			return Results.NoContent();
-		}
-		catch (Exception ex)
-		{
-			if (ex.Message == "Activity not found")
-			{
-				return Results.NotFound();
-			}
-			throw;
-		}
-
-
-	});
-
-app.MapPut("/api/activities/{id:int}", async (int id, Activity activity, IActivityService activityService) =>
+// Kun brugeren der har oprettet eller en admin skal kunne slette - så lidt verifikaiton
+app.MapDelete("/api/activities/{id:int}", async (int id, ClaimsPrincipal user, IActivityService activityService) =>
 {
-
 	try
 	{
+		Activity activity = await activityService.GetActivityById(id);
+		if (!IsOwner(user, activity) && !user.IsInRole("Admin"))
+		{
+			return Results.Forbid();
+		}
+
+		await activityService.RemoveActivityAsync(id);
+		return Results.NoContent();
+	}
+	catch (Exception ex) when (ex.Message == "Activity not found")
+	{
+		return Results.NotFound();
+	}
+	// kræver authorization og kræver også at CSRF (Antiforgery) token bliver valideret
+}).RequireAuthorization().AddEndpointFilter(ValidateAntiforgery);
+
+// Kun brugeren der har oprettet der kan ændre
+app.MapPut("/api/activities/{id:int}", async (int id, Activity activity, ClaimsPrincipal user, IActivityService activityService) =>
+{
+	try
+	{
+		Activity savedActivity = await activityService.GetActivityById(id);
+		if (!IsOwner(user, savedActivity))
+		{
+			return Results.Forbid();
+		}
+
 		activity.Id = id;
+		activity.OwnerId = savedActivity.OwnerId;
 		await activityService.UpdateToRepoAsync(activity);
 		return Results.NoContent();
 	}
-	catch (Exception ex)
+	catch (Exception ex) when (ex.Message == "Activity not found")
 	{
-		if (ex.Message == "Activity not found")
-		{
-			return Results.NotFound();
-		}
-		throw;
+		return Results.NotFound();
 	}
-
-});
+	// kræver authorization og kræver også at CSRF (Antiforgery) token bliver valideret
+}).RequireAuthorization().AddEndpointFilter(ValidateAntiforgery);
 
 app.MapPost("api/activities", async (Activity input, IActivityService activityService) =>
 {
