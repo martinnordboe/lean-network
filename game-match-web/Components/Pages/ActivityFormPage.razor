@@ -77,7 +77,7 @@
             }
             else
             {
-                await ActivityService.AddToRepoAsync(activityToSave);   
+                await ActivityApi.AddAsync(activityToSave);   
             }
 
             NavigationManager.NavigateTo("/"); 
@@ -87,6 +87,10 @@
             if(ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 errorMessage = "Aktiviteten blev ikke fundet";
+            }
+            else if (ex.StatusCode is null)
+            {
+                errorMessage = "Kan ikke kontakte API'et. Prøv igen.";
             }
             else
             {
