@@ -2,12 +2,23 @@
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
-@inject IActivityService activityService
+@inject ActivityApiClient ActivityApi
 @using System.Security.Claims
+@using System.Net
 
-@if(Activity is not null)
+@if (!string.IsNullOrEmpty(errorMessage) && Activity is null)
+{
+    <p class="text-danger">@errorMessage</p>    
+}
+
+else if (Activity is not null)
 {
     <h3>Activity</h3>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <p class="text-danger">@errorMessage</p>
+    }
 
     <h3 class="kort-titel">@Activity.ActivityTitle</h3>
 
@@ -40,7 +51,7 @@
             }
         </Authorized>
     </AuthorizeView>
-    
+
 }
 
 
@@ -50,17 +61,62 @@
     public int Id { get; set; }
 
 
-    public game_match.Models.Activity? Activity { get; set; } 
+    public game_match.Models.Activity? Activity { get; set; }
+
+    private string? errorMessage = "";
 
     protected override async Task OnParametersSetAsync()
     {
-        Activity = await activityService.GetActivityById(Id);
+        errorMessage = "";
+        Activity = null;
+
+        try
+        {
+            Activity = await ActivityApi.GetByIdAsync(Id);
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                errorMessage = $"Aktiviteten med id {Id} blev ikke fundet";
+            }
+            else if (ex.StatusCode is null)
+            {
+                errorMessage = "Kan ikke kontakte Api'et";
+            }
+            else
+            {
+                errorMessage = "Der opstod en fejl under hentningen af aktiviteten";
+            }
+        }
+
     }
 
     public async Task DeleteActivity(int id)
     {
-        await activityService.RemoveActivityAsync(id);
-        NavigationManager.NavigateTo("/"); 
+        errorMessage = "";
+
+        try
+        {
+            await ActivityApi.DeleteByIdAsync(id);
+            NavigationManager.NavigateTo("/"); 
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                errorMessage = $"Aktiviteten med id {id} blev ikke fundet";
+            }
+            else if (ex.StatusCode is null)
+            {
+                errorMessage = "Kan ikke kontakte Api'et";
+            }
+            else
+            {
+                errorMessage = "Der opstod en fejl under sletningen af aktiviteten";
+            }
+        }
+
 
     }
 

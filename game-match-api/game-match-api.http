@@ -5,3 +5,23 @@ GET {{game_match_api_HostAddress}}/api/activities
 Accept: application/json
 
 ###
+
+//Hent en aktivitet der ikke findes
+GET {{game_match_api_HostAddress}}/api/activities/49
+Accept: application/json
+
+###
+
+//Hent en aktivitet der eksisterer
+GET {{game_match_api_HostAddress}}/api/activities/49
+Accept: application/json
+
+###
+
+//Slet aktivitet: forvent 204. Ret id
+DELETE {{game_match_api_HostAddress}}/api/activities/999998
+
+###
+
+//Slet aktivitet der ikke eksisterer: forvent 404
+DELETE {{game_match_api_HostAddress}}/api/activities/999999

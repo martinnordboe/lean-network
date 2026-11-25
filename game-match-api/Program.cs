@@ -32,8 +32,61 @@ app.MapGet("/api/activities", async (IActivityService activityService) =>
     List<Activity> activities = await activityService.GetAllActivitiesAsync();
     return Results.Ok(activities);
 });
-app.MapPost("/api/activities", async (IActivityService service) =>
+
+app.MapGet("/api/activities/{id:int}", async (int id, IActivityService activityService) =>
 {
-    service.AddToRepoAsync()
+    try
+    {
+        Activity activity = await activityService.GetActivityById(id);
+        return Results.Ok(activity);
+    }
+    catch (Exception ex)
+    {
+        if (ex.Message == "Activity not found")
+        {
+            return Results.NotFound();
+        }
+        throw;
+    }
 });
+
+app.MapDelete("/api/activities/{id:int}", async (int id, IActivityService activityService) =>
+    {
+        try
+        {
+            await activityService.RemoveActivityAsync(id);
+            return Results.NoContent();
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message == "Activity not found")
+            {
+                return Results.NotFound();
+            }
+            throw;
+        }
+
+
+    });
+
+app.MapPut("/api/activities/{id:int}", async (int id, Activity activity, IActivityService activityService) =>
+{
+
+    try
+    {
+        activity.Id = id;
+        await activityService.UpdateToRepoAsync(activity);
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        if (ex.Message == "Activity not found")
+        {
+            return Results.NotFound();
+        }
+        throw;
+    }
+
+});
+
 app.Run();
