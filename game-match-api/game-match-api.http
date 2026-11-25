@@ -25,3 +25,19 @@ DELETE {{game_match_api_HostAddress}}/api/activities/999998
 
 //Slet aktivitet der ikke eksisterer: forvent 404
 DELETE {{game_match_api_HostAddress}}/api/activities/999999
+
+###
+
+//Opret aktivitet med ugyldigt input: forvent 400
+POST {{game_match_api_HostAddress}}/api/activities
+Content-Type: application/json
+
+{ "ownerId": 1, "activityTitle": "", "activityInfo": "Info", "address": "Testvej 1", "activityStartTime": "2026-12-01T18:00:00", "maxParticipant": 0 }
+
+###
+
+//Opret aktivitet med gyldigt input: forvent 201 (owner id skal findes)
+POST {{game_match_api_HostAddress}}/api/activities
+Content-Type: application/json
+
+{ "ownerId": 1, "activityTitle": "Test", "activityInfo": "Info", "address": "Testvej 1", "activityStartTime": "2026-12-01T18:00:00", "maxParticipant": 5 }
