@@ -32,5 +32,8 @@ app.MapGet("/api/activities", async (IActivityService activityService) =>
     List<Activity> activities = await activityService.GetAllActivitiesAsync();
     return Results.Ok(activities);
 });
-
+app.MapPost("/api/activities", async (IActivityService service) =>
+{
+    service.AddToRepoAsync()
+});
 app.Run();
