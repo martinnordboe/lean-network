@@ -1,19 +1,18 @@
 using game_match.Components;
-using game_match.Models;
 using game_match.Repositories;
 using game_match.Services;
 using game_match.tools;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using System.Security.Claims;
+using Microsoft.AspNetCore.DataProtection;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+	.AddInteractiveServerComponents();
 
 string? connectionString = DotEnv.ReadMySqlConnectionString();
 builder.Services.AddSingleton(new DbConnectionFactory(connectionString));
@@ -25,17 +24,53 @@ builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<MessageService>();
 builder.Services.AddHttpClient("Activities", http =>
 {
-    var url = builder.Configuration["ActivitiesApi:BaseUrl"]
-    ?? throw new InvalidOperationException("ActivitiesApi:BaseUrl mangler.");
-    http.BaseAddress = new Uri(url);
-    http.Timeout = TimeSpan.FromSeconds(5);
+	var url = builder.Configuration["ActivitiesApi:BaseUrl"]
+	?? throw new InvalidOperationException("ActivitiesApi:BaseUrl mangler.");
+	http.BaseAddress = new Uri(url);
+	http.Timeout = TimeSpan.FromSeconds(5);
+});
+builder.Services.AddScoped<ActivityApiClient>();
+
+IDataProtectionBuilder dataProtection = builder.Services.AddDataProtection().SetApplicationName("GameMatch.Session");
+string? keyRingPath = builder.Configuration["Authentication:SharedKeyRingPath"];
+if (!string.IsNullOrWhiteSpace(keyRingPath))
+{
+	dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keyRingPath));
+}
+
+CookieSecurePolicy securePolicy = CookieSecurePolicy.Always;
+if (builder.Environment.IsDevelopment())
+{
+	securePolicy = CookieSecurePolicy.SameAsRequest;
+}
+
+builder.Services.AddAntiforgery(options =>
+{
+	options.Cookie.Name = ActivityApiClient.AntiforgeryCookieName;
+	options.Cookie.SecurePolicy = securePolicy;
+});
+
+builder.Services.AddHttpClient("Activities", http =>
+{
+	string url = builder.Configuration["ActivitiesApi:BaseUrl"]
+	?? throw new InvalidOperationException("ActivitiesApi:BaseUrl mangler.");
+	http.BaseAddress = new Uri(url);
+	http.Timeout = TimeSpan.FromSeconds(5);
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+	// Send kun cookies fra den aktuelle bruger på det enkelte API-kald.
+	UseCookies = false,
+	AllowAutoRedirect = false
 });
 builder.Services.AddScoped<ActivityApiClient>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
-    {
-        options.LoginPath = "/loginForm";
-        options.AccessDeniedPath = "/Error";
-    });
+{
+	options.Cookie.Name = ActivityApiClient.SessionCookieName;
+	options.Cookie.SecurePolicy = securePolicy;
+	options.SlidingExpiration = false;
+	options.LoginPath = "/loginForm";
+	options.AccessDeniedPath = "/Error";
+});
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 
@@ -43,64 +78,63 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    using IServiceScope scope = app.Services.CreateScope();
-    await scope.ServiceProvider.GetRequiredService<UserService>().EnsureAdminIsAddedAsync();
+	using IServiceScope scope = app.Services.CreateScope();
+	await scope.ServiceProvider.GetRequiredService<UserService>().EnsureAdminIsAddedAsync();
 }
 
 static void AddLogoutEndpoint(WebApplication app)
 {
-    app.MapPost("/account/login", async (HttpContext context, IAntiforgery antiforgery, UserService userService) =>
-    {
-        try
-        {
-            await antiforgery.ValidateRequestAsync(context);
-        }
-        catch (AntiforgeryValidationException)
-        {
-            return Results.BadRequest("Formularen er udløbet. Genindlæs login-siden og prøv igen.");
-        }
+	app.MapPost("/account/login", async (HttpContext context, IAntiforgery antiforgery, ActivityApiClient activityApi) =>
+	{
+		try
+		{
+			await antiforgery.ValidateRequestAsync(context);
+		}
+		catch (AntiforgeryValidationException)
+		{
+			return Results.BadRequest("Formularen er udløbet. Genindlæs login-siden og prøv igen.");
+		}
 
-        IFormCollection form = await context.Request.ReadFormAsync();
-        User? user = await userService.ValidateCredentials(form["username"].ToString(), form["password"].ToString());
-        if (user == null)
-        {
-            return Results.LocalRedirect("/loginForm?error=invalid");
-        }
+		try
+		{
+			bool signedIn = await activityApi.LoginAsync(context);
+			if (signedIn)
+			{
+				return Results.LocalRedirect("/account");
+			}
 
-        Claim[] claims = new Claim[]
-        {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-				new Claim(ClaimTypes.Role, user.Role)
-		};
-        ClaimsIdentity identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = false });
-        return Results.LocalRedirect("/account");
-    }).AllowAnonymous();
+			return Results.LocalRedirect("/loginForm?error=invalid");
+		}
+		catch (Exception ex) when (ex is HttpRequestException ||
+								   ex is OperationCanceledException && !context.RequestAborted.IsCancellationRequested)
+		{
+			return Results.LocalRedirect("/loginForm?error=unavailable");
+		}
+	}).AllowAnonymous();
 
-    app.MapPost("/account/logout", async (HttpContext context, IAntiforgery antiforgery) =>
-    {
-        try
-        {
-            await antiforgery.ValidateRequestAsync(context);
-        }
-        catch (AntiforgeryValidationException)
-        {
-            return Results.BadRequest("Formularen er udløbet. Genindlæs siden og prøv igen.");
-        }
+	app.MapPost("/account/logout", async (HttpContext context, IAntiforgery antiforgery) =>
+	{
+		try
+		{
+			await antiforgery.ValidateRequestAsync(context);
+		}
+		catch (AntiforgeryValidationException)
+		{
+			return Results.BadRequest("Formularen er udløbet. Genindlæs siden og prøv igen.");
+		}
 
-        await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+		await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        return Results.Redirect("/loginForm");
-    });
+		return Results.Redirect("/loginForm");
+	}).RequireAuthorization();
 }
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+	app.UseExceptionHandler("/Error", createScopeForErrors: true);
+	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+	app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
@@ -112,6 +146,6 @@ AddLogoutEndpoint(app);
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+	.AddInteractiveServerRenderMode();
 
 app.Run();
