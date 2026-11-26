@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Security.Claims;
 using game_match_api.Models;
 using game_match_api.Repositories;
 using game_match_api.Services;
@@ -8,6 +6,8 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using System.Globalization;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,7 +41,7 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddAntiforgery(options =>
 {
 	options.Cookie.Name = ".GameMatch.Antiforgery";
-	options.Cookie.SecurePolicy = securePolicy;
+	options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
@@ -72,7 +72,6 @@ if (app.Environment.IsDevelopment())
 	app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
 
 
 //Endpoints
@@ -156,7 +155,7 @@ app.MapDelete("/api/activities/{id:int}", async (int id, ClaimsPrincipal user, I
 		return Results.NotFound();
 	}
 	// kræver authorization og kræver også at CSRF (Antiforgery) token bliver valideret
-}).RequireAuthorization().AddEndpointFilter(ValidateAntiforgery);
+}).RequireAuthorization();
 
 // Kun brugeren der har oprettet der kan ændre
 app.MapPut("/api/activities/{id:int}", async (int id, Activity activity, ClaimsPrincipal user, IActivityService activityService) =>
@@ -179,7 +178,7 @@ app.MapPut("/api/activities/{id:int}", async (int id, Activity activity, ClaimsP
 		return Results.NotFound();
 	}
 	// kræver authorization og kræver også at CSRF (Antiforgery) token bliver valideret
-}).RequireAuthorization().AddEndpointFilter(ValidateAntiforgery);
+}).RequireAuthorization();
 
 app.MapPost("api/activities", async (Activity input, IActivityService activityService) =>
 {

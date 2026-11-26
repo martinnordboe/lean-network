@@ -34,6 +34,7 @@ services:
       # Port mapping til port 5143
       - "127.0.0.1:5143:8443"
     environment:
+      ActivitiesApi__BaseUrl: http://api:8080/
       Authentication__SharedKeyRingPath: /keys
       # Overrider Dockerfile til at Blazor kører på port 8443 ved secure og 8080 ved unsecure
       # inde i containeren - mappes derefter ovenover til port 5143 eksternt
