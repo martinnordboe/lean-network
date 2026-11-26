@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security.Claims;
 using game_match_api.Models;
 using game_match_api.Repositories;
 using game_match_api.Services;
@@ -6,8 +8,6 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
-using System.Globalization;
-using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -102,7 +102,7 @@ app.MapPost("/api/account/login", async (HttpContext context, UserService userSe
 	ClaimsIdentity identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 	await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = false });
 	return Results.Ok();
-}).AllowAnonymous().AddEndpointFilter(ValidateAntiforgery);
+}).AllowAnonymous();
 
 // LOGROUT ENDPOINT
 app.MapPost("/api/account/logout", async (HttpContext context) =>
@@ -111,7 +111,7 @@ app.MapPost("/api/account/logout", async (HttpContext context) =>
 
 	return Results.Ok();
 	// KRÆVER HTTPONLY COOKIE AUTH FOR AT KUNNE LOGGE UD, SAMT CSRF (ANTIFORGERY) TOKEN I FORMULAR
-}).RequireAuthorization().AddEndpointFilter(ValidateAntiforgery);
+}).RequireAuthorization();
 
 app.MapGet("/api/activities", async (IActivityService activityService) =>
 {
@@ -184,7 +184,7 @@ app.MapPost("api/activities", async (Activity input, IActivityService activitySe
 {
 	await activityService.AddToRepoAsync(input);
 	return Results.Created($"/api/activities/{input.Id}", input); //201
-});
+}).RequireAuthorization();
 #endregion
 
 static async ValueTask<object?> ValidateAntiforgery(EndpointFilterInvocationContext invocation, EndpointFilterDelegate next)

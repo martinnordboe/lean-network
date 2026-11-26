@@ -144,8 +144,66 @@ app.UseAntiforgery();
 
 AddLogoutEndpoint(app);
 
+RouteGroupBuilder activityActions = app.MapGroup("/activities/{id:int}").RequireAuthorization();
+activityActions.AddEndpointFilter(ValidateActivityRequest);
+activityActions.MapPost("/delete", DeleteActivityAsync);
+activityActions.MapPost("/edit", EditActivityAsync);
+
+app.MapPost("/activities/create", CreateActivityAsync)
+	.RequireAuthorization()
+	.AddEndpointFilter(ValidateActivityRequest);
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
 	.AddInteractiveServerRenderMode();
 
 app.Run();
+
+static async ValueTask<object?> ValidateActivityRequest(
+	EndpointFilterInvocationContext invocation, EndpointFilterDelegate next)
+{
+	HttpContext context = invocation.HttpContext;
+	IAntiforgery antiforgery = context.RequestServices.GetRequiredService<IAntiforgery>();
+	try
+	{
+		await antiforgery.ValidateRequestAsync(context);
+		return await next(invocation);
+	}
+	catch (AntiforgeryValidationException)
+	{
+		return Results.BadRequest("Formularen er udløbet. Genindlæs siden og prøv igen.");
+	}
+	catch (HttpRequestException)
+	{
+		return Results.StatusCode(StatusCodes.Status502BadGateway);
+	}
+	catch (OperationCanceledException)
+	{
+		if (context.RequestAborted.IsCancellationRequested)
+		{
+			throw;
+		}
+
+		return Results.StatusCode(StatusCodes.Status502BadGateway);
+	}
+}
+
+static async Task<IResult> CreateActivityAsync(
+	game_match.Models.Activity activity, HttpContext context, ActivityApiClient activityApi)
+{
+	using HttpResponseMessage response = await activityApi.AddAsync(activity, context);
+	return Results.StatusCode((int)response.StatusCode);
+}
+
+static async Task<IResult> DeleteActivityAsync(int id, HttpContext context, ActivityApiClient activityApi)
+{
+	using HttpResponseMessage response = await activityApi.DeleteByIdAsync(id, context);
+	return Results.StatusCode((int)response.StatusCode);
+}
+
+static async Task<IResult> EditActivityAsync(
+	int id, game_match.Models.Activity activity, HttpContext context, ActivityApiClient activityApi)
+{
+	using HttpResponseMessage response = await activityApi.EditByIdAsync(id, activity, context);
+	return Results.StatusCode((int)response.StatusCode);
+}

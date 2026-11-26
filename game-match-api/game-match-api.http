@@ -1,43 +1,121 @@
 @game_match_api_HostAddress = http://localhost:5196
+@isolatedApiHostAddress = http://127.0.0.1:5196
+@activityId = 49
+@missingActivityId = 999999
+@testActivityId = 73
+@sessionCookie = CfDJ8KcIeH7PAEtHs_I1_bMoBV4YSmWQkX0_4ZTkk7H_D73Ix7sSnkByAGYC421YxuG6-k1nNYLkXYfNm4wWdQ1sORsN0gwo1VDAuhOvsHSBS8hEkM1tRpdaSAahd5LVuGrcD2K1w-y1w1BJ7TaTg_an8pdy7o_ipDhd2h1Pj2JkW44usQbRSbdNbeLkm0NREt--Y7rYo-RQDmVBJcvLGHKZm1F9dPtBlypkhMvmOIl4OM_bXA40hUI-ju7GIbo249WFdpq4AWRM0Ju3WBmAMkEk2x2sWWjtaeQTHFY3uKu1ibuDvZhRB1IrmMVY8tYDWNz13NNXGBheh1Eo8T4oY8V9DI3gH4gIbUt5RybVZS8iLW8BPk89zZVSUkK0G6z_mrrLByYwt_ZyIPSePB4Eu-MQ77LQhiK_C3DHSrypSwoIYKLZ09gdrQsVkgp_YJI8pEhto0VgY8lwRbuqRHYVfXI01-U_vrslIjI2kdtuG0R4Tz26MIUS48BsSlsnOw9O71qQmQ
+@username = admin
+@password = test123456789
 
-//Hent alle aktiviter
+@otherUsername = test123
+@otherPassword = test123456789
+@otherSessionCookie = CfDJ8KcIeH7PAEtHs_I1_bMoBV6AXldFhx7Eo1Z2hishMvRdenDdGnAEunfKJ_NjV6pQS_uIoTSj9k329rtSmkPZifkwhkQykwjpn11SpEp2nUYREHymeMkgBCjlcumUNoFfkcdBYYgGpWDza4snwFodlwebVfdKRIKpIFQ4EAQWj1zqZEPIvMXu01A8V-ic9t00M1-t5Ma3bTHYec7o_v7aPaczqb4lR8q1Wo4DUlNS_sM4f4QTL26esfFhxLue_srp_p79tC5LPnrzySCKt7J4RDZuAyFOzexGQaHDvCwcT0s07OOsxyiLct3oSMM9huB4yC9IZjv8tHyBKbXcq37x4wLqtcDbXd9QyFcTzwGRVCv3zPajoyCO65ucHBPWLmZ7vA0DBwyBY48RjM-D66w3rAo7o3wDUTFEjVCxe4u1Dc7JFlPxlUOJgB0nzwRpe86BsGuq_ym4Vm9Rer9bDfGM_-aBvYDQU5RWW1e6rYq0m_YYepi7m6pEY6pj7Wz6vRouNw
+@protectedTestActivityId = 86
+
+// 01. Log ind som admin. Forvent 200.
+POST {{game_match_api_HostAddress}}/api/account/login
+Content-Type: application/x-www-form-urlencoded
+
+username={{username}}&password={{password}}
+
+###
+
+// 02. Hent listen før oprettelse. Forvent 200.
 GET {{game_match_api_HostAddress}}/api/activities
 Accept: application/json
 
 ###
 
-//Hent en aktivitet der ikke findes
-GET {{game_match_api_HostAddress}}/api/activities/49
+// 03. Hent en eksisterende aktivitet. Forvent 200.
+GET {{game_match_api_HostAddress}}/api/activities/{{activityId}}
 Accept: application/json
 
 ###
 
-//Hent en aktivitet der eksisterer
-GET {{game_match_api_HostAddress}}/api/activities/49
-Accept: application/json
-
-###
-
-//Slet aktivitet: forvent 204. Ret id
-DELETE {{game_match_api_HostAddress}}/api/activities/999998
-
-###
-
-//Slet aktivitet der ikke eksisterer: forvent 404
-DELETE {{game_match_api_HostAddress}}/api/activities/999999
-
-###
-
-//Opret aktivitet med ugyldigt input: forvent 400
+// 04. Forsøg at oprette en aktivitet med ugyldige felter. Forvent 400 som er bad request og der er ugyldige felter i forhold til vores [required]
 POST {{game_match_api_HostAddress}}/api/activities
 Content-Type: application/json
+Cookie: .GameMatch.Session={{sessionCookie}}
 
 { "ownerId": 1, "activityTitle": "", "activityInfo": "Info", "address": "Testvej 1", "activityStartTime": "2026-12-01T18:00:00", "maxParticipant": 0 }
 
 ###
 
-//Opret aktivitet med gyldigt input: forvent 201 (owner id skal findes)
+// 05. Opret en aktivitet med gyldige felter og et eksisterende ownerId. Forvent 201 som er created statuskode
 POST {{game_match_api_HostAddress}}/api/activities
 Content-Type: application/json
+Cookie: .GameMatch.Session={{sessionCookie}}
 
 { "ownerId": 1, "activityTitle": "Test", "activityInfo": "Info", "address": "Testvej 1", "activityStartTime": "2026-12-01T18:00:00", "maxParticipant": 5 }
+
+###
+
+// 06. Forsøg at logge ind med en bruger der ikke eksisterer. Forvent 401 unauthorized
+POST {{game_match_api_HostAddress}}/api/account/login
+Content-Type: application/x-www-form-urlencoded
+
+username=djwidajdioawdwjdoiadoiajdoiw&password=dwdwaidjawiodjawidddwhd
+
+###
+
+// 07. Kald et beskyttet endpoint med en ugyldig session. Forvent 401.
+DELETE {{isolatedApiHostAddress}}/api/activities/{{missingActivityId}}
+Cookie: .GameMatch.Session=jdwpdjwjdiwj
+
+###
+
+// 08. Log ind som en almindelig bruger uden adminrollen. Forvent 200.
+POST {{game_match_api_HostAddress}}/api/account/login
+Content-Type: application/x-www-form-urlencoded
+
+username={{otherUsername}}&password={{otherPassword}}
+
+###
+
+// 09. Forsøg at rette en eksisterende testaktivitet, som den anden bruger ikke ejer. Forvent 403.
+PUT {{game_match_api_HostAddress}}/api/activities/{{protectedTestActivityId}}
+Content-Type: application/json
+Cookie: .GameMatch.Session={{otherSessionCookie}}
+
+{ "activityTitle": "Test af redigeringsadgang", "activityInfo": "Test", "address": "Testvej 1", "activityStartTime": "2026-12-01T18:00:00", "maxParticipant": 5 }
+
+###
+
+// 10. Forsøg at slette samme aktivitet som den almindelige bruger. Forvent 403.
+DELETE {{game_match_api_HostAddress}}/api/activities/{{protectedTestActivityId}}
+Cookie: .GameMatch.Session={{otherSessionCookie}}
+
+###
+
+// 11. Hent en aktivitet, der ikke findes. Forvent 404.
+GET {{game_match_api_HostAddress}}/api/activities/{{missingActivityId}}
+Accept: application/json
+
+###
+
+// 12. Forsøg at slette et id, der ikke findes, med den almindelige brugers session. Forvent 404.
+DELETE {{game_match_api_HostAddress}}/api/activities/{{missingActivityId}}
+Cookie: .GameMatch.Session={{otherSessionCookie}}
+
+###
+
+// 13. Log ind som admin. Forvent 200.
+POST {{game_match_api_HostAddress}}/api/account/login
+Content-Type: application/x-www-form-urlencoded
+
+username={{username}}&password={{password}}
+
+###
+
+// 14. Ret en testaktivitet, som admin selv ejer. Forvent 204.
+PUT {{game_match_api_HostAddress}}/api/activities/{{testActivityId}}
+Content-Type: application/json
+Cookie: .GameMatch.Session={{sessionCookie}}
+
+{ "activityTitle": "Testaktivitet opdateret af admin", "activityInfo": "Opdateret i HTTP-testen", "address": "Testvej 1", "activityStartTime": "2026-12-01T18:00:00", "maxParticipant": 8 }
+
+###
+
+// 15. Ryd op ved at slette testaktiviteten. Forvent 204.
+DELETE {{game_match_api_HostAddress}}/api/activities/{{testActivityId}}
+Cookie: .GameMatch.Session={{sessionCookie}}

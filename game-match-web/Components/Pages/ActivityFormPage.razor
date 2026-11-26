@@ -5,11 +5,15 @@
 @inject IActivityService ActivityService
 @inject ActivityApiClient ActivityApi
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@inject AntiforgeryStateProvider Antiforgery
+@using System.Net
 @using System.Security.Claims
 @attribute [Authorize]
 
 @if (activity != null)
 {
+    <AntiforgeryToken />
     <ActivityFormComponent Activity="@activity" OnSave="@HandleValidSubmitToDB"/>
 
 }
@@ -71,13 +75,23 @@
 
         try
         {
-            if(Id.HasValue)
+            string url = "/activities/create";
+            if (Id.HasValue)
             {
-                await ActivityApi.EditByIdAsync(Id.Value, activityToSave);
+                url = $"/activities/{Id.Value}/edit";
             }
-            else
+
+            AntiforgeryRequestToken? antiforgeryToken = Antiforgery.GetAntiforgeryToken();
+            string? csrfToken = null;
+            if (antiforgeryToken != null)
             {
-                await ActivityApi.AddAsync(activityToSave);   
+                csrfToken = antiforgeryToken.Value;
+            }
+
+            int? status = await JS.InvokeAsync<int?>("postActivity", url, csrfToken, activityToSave);
+            if (status is null or < 200 or >= 300)
+            {
+                throw new HttpRequestException("Aktiviteten kunne ikke gemmes.", null, (HttpStatusCode?)status);
             }
 
             NavigationManager.NavigateTo("/"); 
@@ -88,7 +102,7 @@
             {
                 errorMessage = "Aktiviteten blev ikke fundet";
             }
-            else if (ex.StatusCode is null)
+            else if (ex.StatusCode is null or HttpStatusCode.BadGateway)
             {
                 errorMessage = "Kan ikke kontakte API'et. Prøv igen.";
             }

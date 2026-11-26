@@ -3,6 +3,8 @@
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
 @inject ActivityApiClient ActivityApi
+@inject IJSRuntime JS
+@inject AntiforgeryStateProvider Antiforgery
 @using System.Security.Claims
 @using System.Net
 
@@ -44,6 +46,7 @@ else if (Activity is not null)
 
             @if (IsOwner(context.User) || context.User.IsInRole("Admin"))
             {
+                <AntiforgeryToken />
                 <br />
                 <div class="container-button">
                     <button type="button" class="edit-delete-knap" @onclick="() => DeleteActivity(Activity.Id)"> Slet aktivitet </button>
@@ -98,7 +101,20 @@ else if (Activity is not null)
 
         try
         {
-            await ActivityApi.DeleteByIdAsync(id);
+            AntiforgeryRequestToken? antiforgeryToken = Antiforgery.GetAntiforgeryToken();
+            string? csrfToken = null;
+            if (antiforgeryToken != null)
+            {
+                csrfToken = antiforgeryToken.Value;
+            }
+
+            int? status = await JS.InvokeAsync<int?>("postActivity", $"/activities/{id}/delete",
+                csrfToken, null);
+            if (status is null or < 200 or >= 300)
+            {
+                throw new HttpRequestException("Aktiviteten kunne ikke slettes.", null, (HttpStatusCode?)status);
+            }
+
             NavigationManager.NavigateTo("/"); 
         }
         catch (HttpRequestException ex)
@@ -107,7 +123,7 @@ else if (Activity is not null)
             {
                 errorMessage = $"Aktiviteten med id {id} blev ikke fundet";
             }
-            else if (ex.StatusCode is null)
+            else if (ex.StatusCode is null or HttpStatusCode.BadGateway)
             {
                 errorMessage = "Kan ikke kontakte Api'et";
             }

@@ -61,25 +61,28 @@ namespace game_match.Services
 			return activity ?? throw new JsonException("Api returnerede null");
 		}
 
-		public async Task DeleteByIdAsync(int id)
+		public async Task<HttpResponseMessage> DeleteByIdAsync(int id, HttpContext context)
 		{
-			using HttpClient http = factory.CreateClient("Activities");
-			using HttpResponseMessage response = await http.DeleteAsync($"api/activities/{id}");
-			response.EnsureSuccessStatusCode();
+			using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, $"api/activities/{id}");
+			return await SendAsync(request, context);
 		}
 
-		public async Task EditByIdAsync(int id, Activity activity)
+		public async Task<HttpResponseMessage> EditByIdAsync(int id, Activity activity, HttpContext context)
 		{
-			using HttpClient http = factory.CreateClient("Activities");
-			using HttpResponseMessage response = await http.PutAsJsonAsync($"api/activities/{id}", activity);
-			response.EnsureSuccessStatusCode();
+			using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, $"api/activities/{id}")
+			{
+				Content = JsonContent.Create(activity)
+			};
+			return await SendAsync(request, context);
 		}
 
-		public async Task AddAsync(Activity activity)
+		public async Task<HttpResponseMessage> AddAsync(Activity activity, HttpContext context)
 		{
-			using HttpClient http = factory.CreateClient("Activities");
-			using HttpResponseMessage response = await http.PostAsJsonAsync("api/activities", activity);
-			response.EnsureSuccessStatusCode();
+			using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "api/activities")
+			{
+				Content = JsonContent.Create(activity)
+			};
+			return await SendAsync(request, context);
 		}
 
 		private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpContext context, bool sendCsrf = false)
